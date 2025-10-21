@@ -43,7 +43,41 @@ const analyzeProductValidation = [
   body('complianceRequirements')
     .optional()
     .isArray()
-    .withMessage('complianceRequirements must be an array')
+    .withMessage('complianceRequirements must be an array'),
+  // Questionnaire envelope
+  body('questionnaire')
+    .optional()
+    .isObject()
+    .withMessage('questionnaire must be an object'),
+  // Minimal validation for key questionnaire fields
+  body('questionnaire.applicationContext.systemType')
+    .optional()
+    .isIn(['classical-ml', 'llm-chatbot', 'autonomous-agent', 'recommender-system', 'other'])
+    .withMessage('Invalid systemType'),
+  body('questionnaire.applicationContext.domain')
+    .optional()
+    .isIn(['healthcare', 'finance', 'e-commerce', 'construction-manufacturing', 'general-purpose', 'other'])
+    .withMessage('Invalid domain'),
+  body('questionnaire.applicationContext.criticality')
+    .optional()
+    .isIn(['experimental-internal', 'business-critical', 'safety-critical'])
+    .withMessage('Invalid criticality'),
+  body('questionnaire.dataHandling.containsSensitive')
+    .optional()
+    .isArray()
+    .withMessage('containsSensitive must be an array'),
+  body('questionnaire.modelDetails.modelType')
+    .optional()
+    .isIn(['foundation-api', 'open-source-self-hosted', 'custom-ml'])
+    .withMessage('Invalid modelType'),
+  body('questionnaire.modelDetails.maintenance')
+    .optional()
+    .isIn(['static', 'periodic', 'continuous'])
+    .withMessage('Invalid maintenance'),
+  body('questionnaire.modelDetails.visibility')
+    .optional()
+    .isIn(['black-box', 'white-box'])
+    .withMessage('Invalid visibility')
 ];
 
 const batchAnalyzeValidation = [

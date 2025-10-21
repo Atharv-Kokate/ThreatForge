@@ -28,7 +28,8 @@ const analyzeProduct = catchAsync(async (req, res, next) => {
     depth = 'standard',
     includeRecommendations = true,
     previousAssessments = [],
-    complianceRequirements = []
+    complianceRequirements = [],
+    questionnaire = {}
   } = req.body;
 
   // Get product and verify access
@@ -56,7 +57,8 @@ const analyzeProduct = catchAsync(async (req, res, next) => {
       focus,
       depth,
       includeRecommendations,
-      complianceRequirements
+      complianceRequirements,
+      questionnaire
     },
     status: 'pending',
     timestamp: new Date()
@@ -82,6 +84,7 @@ const analyzeProduct = catchAsync(async (req, res, next) => {
       includeRecommendations,
       previousAssessments,
       complianceRequirements,
+      questionnaire,
       sessionId: req.headers['x-session-id']
     };
 

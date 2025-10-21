@@ -67,6 +67,7 @@ class LLMService {
           depth: options.depth || 'standard',
           includeRecommendations: options.includeRecommendations !== false
         },
+        questionnaire: options.questionnaire || {},
         context: {
           previousAssessments: options.previousAssessments || [],
           organizationProfile: options.organizationProfile || null,
