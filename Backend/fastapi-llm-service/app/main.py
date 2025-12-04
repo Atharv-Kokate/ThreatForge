@@ -4,16 +4,20 @@ OWASP Risk Analysis Platform - Backend
 """
 
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from dotenv import load_dotenv
 
-from app.routes import analyze, status
+from app.routes import analyze, status, rag
 from app.auth import routes as auth_routes
 from app.llm.groq_client import initialize_llm
 from app.database.session import init_db
 from app.utils.logger import logger
+
+# DEBUG mode: set environment variable DEBUG=true to enable detailed error responses
+DEBUG = os.getenv("DEBUG", "false").lower() in ("1", "true", "yes")
 
 # Load environment variables
 load_dotenv()
@@ -39,14 +43,20 @@ def custom_openapi():
     )
     
     # Add Bearer token authentication to OpenAPI schema
-    openapi_schema["components"]["securitySchemes"] = {
-        "Bearer": {
-            "type": "http",
-            "scheme": "bearer",
-            "bearerFormat": "JWT",
-            "description": "Enter JWT token obtained from /auth/login endpoint. Format: Bearer <token> or just <token>"
-        }
+    openapi_schema.setdefault("components", {})
+    openapi_schema["components"].setdefault("securitySchemes", {})
+    openapi_schema["components"]["securitySchemes"]["Bearer"] = {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Enter JWT token obtained from /auth/login endpoint. Format: Bearer <token> or just <token>"
     }
+
+    # Add a global security requirement so Swagger UI shows the Authorize dialog
+    openapi_schema.setdefault("security", [])
+    # Only add if not already present
+    if {"Bearer": []} not in openapi_schema["security"]:
+        openapi_schema["security"].append({"Bearer": []})
     
     app.openapi_schema = openapi_schema
     return app.openapi_schema
@@ -68,10 +78,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Log unhandled exceptions and return a JSON error. In DEBUG mode include exception text."""
+    logger.exception("Unhandled exception while handling request %s %s: %s", request.method, request.url, exc)
+    if DEBUG:
+        return JSONResponse(status_code=500, content={"detail": str(exc)})
+    return JSONResponse(status_code=500, content={"detail": "Internal Server Error"})
+
 # Include routers
 app.include_router(auth_routes.router)
 app.include_router(analyze.router)
 app.include_router(status.router)
+app.include_router(rag.router)
 
 
 @app.on_event("startup")

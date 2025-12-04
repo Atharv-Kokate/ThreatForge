@@ -272,6 +272,8 @@ Tokens expire after 30 days by default (configurable via `ACCESS_TOKEN_EXPIRE_MI
 | `ALLOWED_ORIGINS` | CORS allowed origins (comma-separated) | `*` | No |
 | `LOG_LEVEL` | Logging level | `INFO` | No |
 | `ACCESS_TOKEN_EXPIRE_MINUTES` | JWT token expiration (minutes) | `43200` (30 days) | No |
+| `TAVILY_API_KEY` | Tavily web search API key | - | No |
+| `TAVILY_ENDPOINT` | Tavily search endpoint | `https://api.tavily.ai/v1/search` | No |
 
 ### Database Models
 
@@ -468,6 +470,25 @@ The service analyzes systems across multiple dimensions:
 3. **Infrastructure**: Deployment vulnerabilities, access control
 4. **Compliance**: Regulatory violations, audit failures
 5. **Operational**: System failures, misuse, monitoring gaps
+
+## 🔎 RAG (Retrieval-Augmented Generation) Integration
+
+This repository includes a minimal RAG proof-of-concept to combine local knowledge (FAISS) with web search (Tavily).
+
+- Files: `app/llm/ingest.py`, `app/llm/retriever.py`, `app/llm/web_search.py`, `app/routes/rag.py`
+- Env: set `TAVILY_API_KEY` and optionally `TAVILY_ENDPOINT` in `.env` to enable web search
+- Index path: `app/llm/_faiss/index.faiss` and metadata at `app/llm/_faiss/metadata.json`
+
+Quick dev steps:
+
+1. Install extra deps: `pip install sentence-transformers faiss-cpu requests`
+2. Ingest text via `ingest_document(doc_id, text, metadata)` (function in `app/llm/ingest.py`).
+3. Start the server and call `POST /analysis/analyze_rag` with an authenticated request.
+
+Notes:
+- The FAISS usage here is a POC: for production use Qdrant/Pinecone/Weaviate and persist robust id↔vector mappings.
+- The Tavily adapter normalizes responses; adapt if your Tavily plan returns a different JSON shape.
+- Keep privacy considerations in mind: redact PII before sending to external services.
 
 ## 📝 License
 

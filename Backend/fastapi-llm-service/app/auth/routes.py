@@ -25,45 +25,85 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
     """
     Register a new user
     """
-    # Check if user with email already exists
-    existing_user = db.query(User).filter(User.email == user_data.email).first()
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email already registered"
-        )
-    
-    # Check if username already exists
-    existing_username = db.query(User).filter(User.username == user_data.username).first()
-    if existing_username:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already taken"
-        )
-    
-    # Create new user
-    hashed_password = get_password_hash(user_data.password)
-    new_user = User(
-        email=user_data.email,
-        username=user_data.username,
-        hashed_password=hashed_password,
-        full_name=user_data.full_name,
-        is_active="true"
-    )
-    
     try:
+        # Validate password length
+        if len(user_data.password) < 6:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Password must be at least 6 characters long."
+            )
+        
+        if len(user_data.password) > 128:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Password is too long. Maximum length is 128 characters."
+            )
+        
+        # Check if user with email already exists
+        existing_user = db.query(User).filter(User.email == user_data.email).first()
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered"
+            )
+        
+        # Check if username already exists
+        existing_username = db.query(User).filter(User.username == user_data.username).first()
+        if existing_username:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username already taken"
+            )
+        
+        # Hash password
+        try:
+            hashed_password = get_password_hash(user_data.password)
+        except Exception as hash_error:
+            logger.error(f"Password hashing error: {str(hash_error)}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Password hashing failed: {str(hash_error)}"
+            )
+        
+        # Create new user
+        new_user = User(
+            email=user_data.email,
+            username=user_data.username,
+            hashed_password=hashed_password,
+            full_name=user_data.full_name if user_data.full_name else None,
+            is_active="true"
+        )
+        
         db.add(new_user)
         db.commit()
         db.refresh(new_user)
         logger.info(f"New user registered: {user_data.email}")
         return new_user
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions (like validation errors)
+        raise
     except Exception as e:
         db.rollback()
-        logger.error(f"Error registering user: {str(e)}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to register user"
-        )
+        logger.error(f"Error registering user: {str(e)}", exc_info=True)
+        error_detail = str(e)
+        
+        # Provide more specific error messages
+        if "duplicate key" in error_detail.lower() or "unique constraint" in error_detail.lower():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email or username already exists"
+            )
+        elif "connection" in error_detail.lower() or "database" in error_detail.lower():
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Database connection error. Please try again later."
+            )
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to register user: {error_detail}"
+            )
 
 
 @router.post("/login", response_model=Token)

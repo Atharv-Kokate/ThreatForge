@@ -1,0 +1,54 @@
+{
+  "product": {
+    "name": "Sample AI Chatbot",
+    "description": "A customer support chatbot that answers user queries using an LLM.",
+    "category": "web-application",
+    "technology": "Python, FastAPI, Groq LLM",
+    "version": "1.0.0"
+  },
+  "questionnaire": {
+    "applicationContext": {
+      "systemType": "llm-chatbot",
+      "domain": "customer-support",
+      "criticality": "business-critical"
+    },
+    "dataHandling": {
+      "sources": ["user-input", "product-db"],
+      "containsSensitive": ["pii"],
+      "sanitizeBeforeModelUse": true
+    },
+    "modelDetails": {
+      "modelType": "foundation-api",
+      "maintenance": "periodic",
+      "visibility": "black-box"
+    },
+    "systemArchitecture": {
+      "deployment": "cloud",
+      "access": ["public-api", "admin-console"],
+      "integrations": ["crm", "knowledge-base"]
+    },
+    "interactionControl": {
+      "inputs": ["free-text"],
+      "outputs": ["end-user-display"],
+      "promptGuardrails": true
+    },
+    "securityPractices": {
+      "auth": ["oauth2"],
+      "logging": "masked",
+      "encryption": true
+    },
+    "threatSurface": {
+      "multiTenant": false,
+      "externalQuery": true,
+      "adversarialProtection": true
+    },
+    "complianceGovernance": {
+      "frameworks": ["gdpr"],
+      "explainability": true,
+      "retentionPolicies": true
+    }
+  },
+  "analysis": {},
+  "context": {},
+  "metadata": {"test": true}
+}

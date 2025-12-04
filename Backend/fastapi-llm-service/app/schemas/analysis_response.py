@@ -4,6 +4,7 @@ Pydantic schemas for analysis responses
 
 from pydantic import BaseModel, Field
 from typing import List
+from typing import Optional
 
 
 class AnalysisResponse(BaseModel):
@@ -18,4 +19,5 @@ class AnalysisResponse(BaseModel):
     confidence: float = Field(ge=0, le=1)
     requestId: str
     timestamp: str
+    provenance: Optional[List[dict]] = None
 

@@ -29,13 +29,44 @@ security = HTTPBearer()
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a plain password against a hashed password"""
-    return pwd_context.verify(plain_password, hashed_password)
+    """
+    Verify a plain password against a hashed password
+    Uses SHA256 pre-hash to match the hashing strategy
+    """
+    import hashlib
+    
+    if not plain_password:
+        return False
+    
+    # Hash with SHA256 first (same as in get_password_hash)
+    password_bytes = plain_password.encode('utf-8')
+    sha256_hash = hashlib.sha256(password_bytes).hexdigest()
+    
+    # Verify the SHA256 hash against the bcrypt hash
+    return pwd_context.verify(sha256_hash, hashed_password)
 
 
 def get_password_hash(password: str) -> str:
-    """Hash a password"""
-    return pwd_context.hash(password)
+    """
+    Hash a password using bcrypt
+    Bcrypt has a 72-byte limit, so we ALWAYS pre-hash with SHA256 first
+    This ensures we never hit the limit and is a secure pattern
+    """
+    import hashlib
+    
+    if not password:
+        raise ValueError("Password cannot be empty")
+    
+    # Convert to bytes
+    password_bytes = password.encode('utf-8')
+    
+    # ALWAYS pre-hash with SHA256 to avoid bcrypt's 72-byte limit
+    # SHA256 produces 64-character hex string (32 bytes) - well within bcrypt's limit
+    sha256_hash = hashlib.sha256(password_bytes).hexdigest()
+    
+    # Hash the SHA256 result with bcrypt
+    # This will NEVER exceed 72 bytes
+    return pwd_context.hash(sha256_hash)
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:

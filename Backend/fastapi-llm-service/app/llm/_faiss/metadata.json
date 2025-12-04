@@ -1,0 +1,18 @@
+{
+  "sample_doc_0_4ef26eb4": {
+    "doc_id": "sample_doc",
+    "text": "This document provides a brief overview of secure design patterns for AI/ML systems and common vulnerabilities to watch for.\n\nAuthentication & Authorization\n- Use strong authentication (OAuth2 / OIDC) for user-facing systems.\n- Prefer short-lived access tokens and rotate keys; validate scopes on every API call.\n\nData Handling & Privacy\n- Classify data sources and mark sensitive fields (PII, PHI, credentials).\n- Apply input sanitization and output masking before storing or sending to models.\n\nModel & Prompt Security\n- Apply prompt guardrails to prevent prompt injection and leakage of sensitive data.\n- Limit model exposure by filtering or redacting user-supplied content where applicable.",
+    "metadata": {
+      "source": "sample_docs",
+      "title": "RAG Sample Document"
+    }
+  },
+  "sample_doc_1_8e13c04d": {
+    "doc_id": "sample_doc",
+    "text": "Infrastructure & Monitoring\n- Enforce least-privilege IAM for model and data storage access.\n- Implement anomaly detection and logging for unusual model queries or high-cost patterns.\n\nProvenance & Auditing\n- Keep provenance for external data and web-sourced evidence (URL, title, snippet).\n- Store high-level summaries in the primary DB and archive raw model outputs separately when needed.\n\nThis sample document is intentionally short; ingest it to test RAG retrieval and provenance features.",
+    "metadata": {
+      "source": "sample_docs",
+      "title": "RAG Sample Document"
+    }
+  }
+}
