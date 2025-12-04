@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
 from dotenv import load_dotenv
 
-from app.routes import analyze, status, rag
+from app.routes import analyze, status, rag, kb, ingest
 from app.auth import routes as auth_routes
 from app.llm.groq_client import initialize_llm
 from app.database.session import init_db
@@ -92,6 +92,8 @@ app.include_router(auth_routes.router)
 app.include_router(analyze.router)
 app.include_router(status.router)
 app.include_router(rag.router)
+app.include_router(kb.router)
+app.include_router(ingest.router)
 
 
 @app.on_event("startup")

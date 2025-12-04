@@ -11,6 +11,7 @@ from typing import Optional
 from app.schemas.analysis_request import AnalysisRequest
 from app.schemas.analysis_response import AnalysisResponse
 from app.llm.groq_client import get_llm
+from app.llm.model_registry import get_model
 from app.llm.prompt_templates import get_chat_prompt
 from app.llm.parser import (
     extract_vulnerabilities,
@@ -42,10 +43,18 @@ async def analyze_risk(
     request_id = str(uuid.uuid4())
     
     try:
-        # Get LLM instance
-        llm = get_llm()
+        model_choice = None
+        try:
+            if request.llm and (request.llm.provider or request.llm.model):
+                p = request.llm.provider or "groq"
+                m = request.llm.model or None
+                model_choice = f"{p}:{m}" if m else p
+            elif request.metadata:
+                model_choice = request.metadata.get("model")
+        except Exception:
+            model_choice = None
+        llm = get_model(model_choice) or get_llm()
         if llm is None:
-            logger.error("LLM not initialized - GROQ_API_KEY may be missing or initialization failed")
             raise HTTPException(status_code=503, detail="LLM service not available")
         
         # Extract questionnaire data
@@ -111,7 +120,7 @@ async def analyze_risk(
             riskScore=risk_score,
             riskLevel=risk_level,
             processingTime=processing_time,
-            model="llama-3.1-8b-instant",
+            model=(model_choice or "llama-3.1-8b-instant"),
             confidence=0.85,  # You can calculate this based on response quality
             requestId=request_id,
             timestamp=datetime.utcnow().isoformat()
@@ -145,19 +154,31 @@ async def analyze_risk(
 
 @router.get("/models")
 async def get_available_models():
-    """Get available Groq models"""
-    return {
-        "models": [
-            {
-                "name": "llama-3.1-8b-instant",
-                "description": "Llama 3 8B model with 8K context",
-                "max_tokens": 8192
-            },
-            {
-                "name": "mixtral-8x7b-32768",
-                "description": "Mixtral 8x7B model with 32K context",
-                "max_tokens": 32768
-            }
-        ]
-    }
+    import os
+    providers = []
+    if os.getenv("GROQ_API_KEY"):
+        providers.append({
+            "provider": "groq",
+            "models": [
+                {"name": "llama-3.1-8b-instant", "max_tokens": 8192},
+                {"name": "mixtral-8x7b-32768", "max_tokens": 32768}
+            ]
+        })
+    if os.getenv("OPENAI_API_KEY"):
+        providers.append({
+            "provider": "openai",
+            "models": [
+                {"name": "gpt-4o", "max_tokens": 4096},
+                {"name": "gpt-4o-mini", "max_tokens": 8192}
+            ]
+        })
+    if os.getenv("ANTHROPIC_API_KEY"):
+        providers.append({
+            "provider": "anthropic",
+            "models": [
+                {"name": "claude-3-5-sonnet-20241022", "max_tokens": 8192},
+                {"name": "claude-3-haiku-20240307", "max_tokens": 8192}
+            ]
+        })
+    return {"providers": providers}
 

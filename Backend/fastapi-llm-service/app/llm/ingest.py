@@ -173,3 +173,66 @@ def query_index(query: str, top_k: int = 2):
             k = keys[idx]
             results.append({"id": k, "text": meta[k]["text"], "metadata": meta[k]["metadata"]})
     return results
+
+
+def ingest_path(doc_id: str, path: str, metadata: Dict[str, Any] = None) -> List[str]:
+    texts = []
+    metas = []
+    if os.path.isdir(path):
+        try:
+            from langchain.document_loaders import DirectoryLoader
+            loader = DirectoryLoader(path, glob="**/*")
+            docs = loader.load()
+            for d in docs:
+                texts.append(getattr(d, "page_content", ""))
+                metas.append({**getattr(d, "metadata", {}), **(metadata or {})})
+        except Exception as e:
+            logger.error("Directory ingestion failed: %s", e)
+            return []
+    else:
+        ext = os.path.splitext(path)[1].lower()
+        try:
+            if ext in (".txt", ".md"):
+                from langchain.document_loaders import TextLoader
+                docs = TextLoader(path, encoding="utf-8").load()
+            elif ext == ".pdf":
+                from langchain.document_loaders import PyPDFLoader
+                docs = PyPDFLoader(path).load()
+            elif ext == ".docx":
+                from langchain.document_loaders import Docx2txtLoader
+                docs = Docx2txtLoader(path).load()
+            elif ext == ".csv":
+                from langchain.document_loaders import CSVLoader
+                docs = CSVLoader(path).load()
+            elif ext == ".json":
+                from langchain.document_loaders import JSONLoader
+                docs = JSONLoader(path, jq_schema=".").load()
+            elif ext in (".html", ".htm"):
+                from langchain.document_loaders import BSHTMLLoader
+                docs = BSHTMLLoader(path).load()
+            else:
+                with open(path, "r", encoding="utf-8", errors="ignore") as f:
+                    docs = []
+                    texts.append(f.read())
+                    metas.append(metadata or {})
+            if docs:
+                for d in docs:
+                    texts.append(getattr(d, "page_content", ""))
+                    metas.append({**getattr(d, "metadata", {}), **(metadata or {})})
+        except Exception as e:
+            try:
+                with open(path, "r", encoding="utf-8", errors="ignore") as f:
+                    texts.append(f.read())
+                    metas.append(metadata or {})
+            except Exception as e2:
+                logger.error("File ingestion failed: %s", e2)
+                return []
+
+    added_ids: List[str] = []
+    for i, t in enumerate(texts):
+        if not t:
+            continue
+        base_meta = metas[i] if i < len(metas) else (metadata or {})
+        ids = ingest_document(f"{doc_id}_{i}", t, base_meta)
+        added_ids.extend(ids)
+    return added_ids

@@ -81,4 +81,9 @@ class AnalysisRequest(BaseModel):
     questionnaire: Questionnaire
     context: Dict[str, Any] = Field(default_factory=dict)
     metadata: Dict[str, Any] = Field(default_factory=dict)
+    class LLMConfig(BaseModel):
+        provider: Optional[str] = None
+        model: Optional[str] = None
+        temperature: Optional[float] = None
+    llm: Optional[LLMConfig] = None
 

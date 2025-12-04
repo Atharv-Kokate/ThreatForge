@@ -8,6 +8,7 @@ import uuid
 from app.schemas.analysis_request import AnalysisRequest
 from app.schemas.analysis_response import AnalysisResponse
 from app.llm.groq_client import get_llm
+from app.llm.model_registry import get_model
 from app.llm.retriever import retrieve
 from app.llm.parser import extract_vulnerabilities, extract_recommendations, extract_risk_score, determine_risk_level
 from app.database.session import get_db
@@ -74,12 +75,18 @@ async def analyze_rag(
         context_lines = []
         if contexts:
             for i, c in enumerate(contexts, start=1):
-                src = c.get("source") or c.get("url") or "kb"
-                url = c.get("url")
-                title = c.get("title") or None
+                src = c.get("source") or "kb"
+                # Support URL/title from either top-level or meta
+                url = c.get("url") or c.get("meta", {}).get("url")
+                title = c.get("title")
                 text = c.get("text") or ""
                 snippet = text if len(text) <= 1000 else text[:1000] + "..."
-                context_lines.append(f"{i}. Source: {src} {f'| {url}' if url else ''}\n{snippet}")
+                heading = f"{i}. Source: {src}"
+                if title:
+                    heading += f" | {title}"
+                if url:
+                    heading += f" | {url}"
+                context_lines.append(f"{heading}\n{snippet}")
                 provenance.append({
                     "id": c.get("id") or str(i),
                     "source": src,
@@ -112,9 +119,13 @@ async def analyze_rag(
             "Provide a concise risk analysis, list vulnerabilities, recommendations, and a numeric risk score (0-10)."
         )
 
-        llm = get_llm()
+        model_choice = None
+        try:
+            model_choice = request.metadata.get("model") if request.metadata else None
+        except Exception:
+            model_choice = None
+        llm = get_model(model_choice) or get_llm()
         if llm is None:
-            logger.error("LLM not initialized - GROQ_API_KEY may be missing or initialization failed")
             raise HTTPException(status_code=503, detail="LLM service not available")
 
         logger.info(f"Starting RAG analysis for request {request_id}")
@@ -136,7 +147,7 @@ async def analyze_rag(
             riskScore=risk_score,
             riskLevel=risk_level,
             processingTime=processing_time,
-            model="rag-groq",
+            model=(model_choice or "rag-groq"),
             confidence=0.7,
             requestId=request_id,
             timestamp=datetime.utcnow().isoformat()
