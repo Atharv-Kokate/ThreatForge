@@ -65,10 +65,30 @@ def custom_openapi():
 app.openapi = custom_openapi
 
 # CORS middleware
-allowed_origins = os.getenv(
-    "ALLOWED_ORIGINS",
-    "*"
-).split(",") if os.getenv("ALLOWED_ORIGINS") != "*" else ["*"]
+# Default allowed origins for development
+default_origins = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:5175",
+    "http://localhost:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
+    "http://127.0.0.1:5175",
+    "http://127.0.0.1:3000",
+]
+
+env_origins = os.getenv("ALLOWED_ORIGINS", "")
+if env_origins:
+    if env_origins == "*":
+        allowed_origins = ["*"]
+    else:
+        # Split by comma and strip whitespace
+        allowed_origins = [origin.strip() for origin in env_origins.split(",") if origin.strip()]
+else:
+    # Use defaults if not set
+    allowed_origins = default_origins
+
+logger.info(f"CORS allowed origins: {allowed_origins}")
 
 app.add_middleware(
     CORSMiddleware,
