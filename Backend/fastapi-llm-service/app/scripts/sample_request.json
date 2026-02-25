@@ -1,54 +1,82 @@
 {
   "product": {
-    "name": "Sample AI Chatbot",
-    "description": "A customer support chatbot that answers user queries using an LLM.",
-    "category": "web-application",
-    "technology": "Python, FastAPI, Groq LLM",
-    "version": "1.0.0"
+    "name": "MediAssist AI",
+    "description": "An AI assistant for doctors that summarizes patient medical records and suggests potential diagnoses based on symptoms.",
+    "category": "healthcare-application",
+    "technology": "Python, LangChain, OpenAI GPT-4, Vector DB",
+    "version": "2.1.0"
   },
   "questionnaire": {
     "applicationContext": {
-      "systemType": "llm-chatbot",
-      "domain": "customer-support",
-      "criticality": "business-critical"
+      "systemType": "agentic-workflow",
+      "domain": "healthcare",
+      "criticality": "safety-critical"
     },
     "dataHandling": {
-      "sources": ["user-input", "product-db"],
-      "containsSensitive": ["pii"],
+      "sources": [
+        "electronic-health-records",
+        "medical-journals"
+      ],
+      "containsSensitive": [
+        "phi",
+        "medical-history"
+      ],
       "sanitizeBeforeModelUse": true
     },
     "modelDetails": {
       "modelType": "foundation-api",
-      "maintenance": "periodic",
+      "maintenance": "continuous",
       "visibility": "black-box"
     },
     "systemArchitecture": {
-      "deployment": "cloud",
-      "access": ["public-api", "admin-console"],
-      "integrations": ["crm", "knowledge-base"]
+      "deployment": "hybrid-cloud",
+      "access": [
+        "internal-api",
+        "vpn-only"
+      ],
+      "integrations": [
+        "ehr-system",
+        "email-notifications"
+      ]
     },
     "interactionControl": {
-      "inputs": ["free-text"],
-      "outputs": ["end-user-display"],
+      "inputs": [
+        "structured-data",
+        "free-text-notes"
+      ],
+      "outputs": [
+        "clinical-summary",
+        "decision-support"
+      ],
       "promptGuardrails": true
     },
     "securityPractices": {
-      "auth": ["oauth2"],
-      "logging": "masked",
+      "auth": [
+        "mfa",
+        "sso"
+      ],
+      "logging": "comprehensive",
       "encryption": true
     },
     "threatSurface": {
-      "multiTenant": false,
-      "externalQuery": true,
+      "multiTenant": true,
+      "externalQuery": false,
       "adversarialProtection": true
     },
     "complianceGovernance": {
-      "frameworks": ["gdpr"],
-      "explainability": true,
+      "frameworks": [
+        "hipaa",
+        "gdpr",
+        "hitrust"
+      ],
+      "explainability": false,
       "retentionPolicies": true
     }
   },
   "analysis": {},
   "context": {},
-  "metadata": {"test": true}
+  "metadata": {
+    "model": "gpt-4",
+    "test": true
+  }
 }

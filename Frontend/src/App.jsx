@@ -1,5 +1,6 @@
+
 import React from 'react'
-import { Routes, Route, Navigate, Link } from 'react-router-dom'
+import { Routes, Route, Navigate, Link, Outlet } from 'react-router-dom'
 import { AuthProvider, useAuth } from './context/AuthContext.jsx'
 import Login from './pages/Login.jsx'
 import Register from './pages/Register.jsx'
@@ -14,23 +15,36 @@ function Protected({ children }) {
   return children
 }
 
+function Layout() {
+  return (
+    <div className="app">
+      <Sidebar />
+      <main className="content">
+        <Outlet />
+      </main>
+    </div>
+  )
+}
+
 export default function App() {
   return (
     <AuthProvider>
-      <div className="app">
-        <Sidebar />
-        <main className="content">
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<Protected><Dashboard /></Protected>} />
-            <Route path="/new" element={<Protected><NewAssessment /></Protected>} />
-            <Route path="/report/:id" element={<Protected><Report /></Protected>} />
-            <Route path="*" element={<div className="card"><h2>Not Found</h2><Link to="/dashboard">Go Home</Link></div>} />
-          </Routes>
-        </main>
-      </div>
+      <Routes>
+        {/* Public Routes - Full Screen */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+
+        {/* Protected app routes - With Sidebar */}
+        <Route element={<Protected><Layout /></Protected>}>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/new" element={<NewAssessment />} />
+          <Route path="/report/:id" element={<Report />} />
+        </Route>
+
+        {/* Catch all */}
+        <Route path="*" element={<div className="card"><h2>Not Found</h2><Link to="/dashboard">Go Home</Link></div>} />
+      </Routes>
     </AuthProvider>
   )
 }

@@ -1,72 +1,42 @@
 """
-Tavily web search adapter
-
-Set `TAVILY_API_KEY` in your `.env` to enable web search.
-Uses POST with JSON payload when possible; falls back to GET.
+DuckDuckGo web search adapter
 """
-import os
-import requests
 from typing import List, Dict
+from duckduckgo_search import DDGS
 from app.utils.logger import logger
+import time
+import random
 
-TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
-TAVILY_ENDPOINT = os.getenv("TAVILY_ENDPOINT", "https://api.tavily.ai/v1/search")
 
-
-def tavily_search(query: str, top_k: int = 2) -> List[Dict]:
-    """Call Tavily search API and return up to top_k results with title/snippet/url."""
-    if not TAVILY_API_KEY:
-        logger.debug("TAVILY_API_KEY not set; skipping web search")
-        return []
-
-    # Prefer POST with JSON body; include both header and body key for compatibility
-    headers = {
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {TAVILY_API_KEY}",
-        "X-API-Key": TAVILY_API_KEY,
-    }
-    body = {
-        "query": query,
-        "max_results": top_k,
-        "search_depth": "basic",
-        "include_answer": False,
-        "include_raw_content": False,
-        "api_key": TAVILY_API_KEY,
-    }
-    try:
-        r = requests.post(TAVILY_ENDPOINT, headers=headers, json=body, timeout=10)
-        r.raise_for_status()
-        payload = r.json()
-    except Exception as e_post:
-        logger.info(f"Tavily POST failed, falling back to GET: {e_post}")
+def duckduckgo_search(query: str, top_k: int = 2) -> List[Dict]:
+    """Call DuckDuckGo search API and return up to top_k results with title/snippet/url."""
+    logger.info(f"Searching DuckDuckGo for: {query}")
+    
+    max_retries = 3
+    base_delay = 2
+    
+    for attempt in range(max_retries):
         try:
-            params = {"query": query, "max_results": top_k}
-            # Also support legacy 'q' and 'limit' naming
-            params.setdefault("q", query)
-            params.setdefault("limit", top_k)
-            r = requests.get(TAVILY_ENDPOINT, headers=headers, params=params, timeout=10)
-            r.raise_for_status()
-            payload = r.json()
-        except Exception as e_get:
-            logger.warning(f"Tavily search failed: {e_get}")
-            return []
-
-    items = (
-        payload.get("results")
-        or payload.get("items")
-        or payload.get("data")
-        or payload.get("organic_results")
-        or []
-    )
-    out: List[Dict] = []
-    for it in items[:top_k]:
-        out.append({
-            "title": it.get("title") or it.get("name") or "",
-            "snippet": it.get("content") or it.get("snippet") or it.get("description") or it.get("text") or "",
-            "url": it.get("url") or it.get("link") or "",
-        })
-
-    if not out:
-        logger.info(f"Tavily returned 0 results for query '{query}'")
-    return out
+            results = DDGS().text(query, max_results=top_k)
+            out: List[Dict] = []
+            if results:
+                for it in results:
+                    out.append({
+                        "title": it.get("title", ""),
+                        "snippet": it.get("body", ""),
+                        "url": it.get("href", ""),
+                    })
+            
+            if not out:
+                logger.info(f"DuckDuckGo returned 0 results for query '{query}'")
+            return out
+        
+        except Exception as e:
+            if attempt < max_retries - 1:
+                wait_time = base_delay * (2 ** attempt) + random.uniform(0, 1)
+                logger.warning(f"DuckDuckGo search failed (attempt {attempt+1}/{max_retries}): {e}. Retrying in {wait_time:.2f}s...")
+                time.sleep(wait_time)
+            else:
+                logger.warning(f"DuckDuckGo search failed after {max_retries} attempts: {e}")
+                return []
+    return []

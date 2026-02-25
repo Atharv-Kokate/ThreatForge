@@ -45,4 +45,19 @@ def get_model(model_id: Optional[str] = None):
             return None
         return ChatAnthropic(api_key=api_key, model=name or "claude-3-5-sonnet-20241022")
 
+    if provider == "google":
+        try:
+            from langchain_google_genai import ChatGoogleGenerativeAI
+        except Exception:
+            return None
+        api_key = os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            return None
+        target_model = name or "gemini-1.5-flash"
+        if target_model == "gemini-1.5-pro":
+            target_model = "gemini-1.5-pro-latest"
+        elif target_model == "gemini-1.5-flash":
+            target_model = "gemini-1.5-flash-latest"
+        return ChatGoogleGenerativeAI(google_api_key=api_key, model=target_model, convert_system_message_to_human=True)
+
     return None

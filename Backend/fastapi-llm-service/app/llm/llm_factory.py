@@ -31,4 +31,18 @@ def get_llm_client(provider: Optional[str] = None, model: Optional[str] = None):
         if not key:
             return None
         return ChatAnthropic(api_key=key, model=model or "claude-3-5-sonnet-20241022")
+    if p == "google":
+        try:
+            from langchain_google_genai import ChatGoogleGenerativeAI
+        except Exception:
+            return None
+        key = os.getenv("GOOGLE_API_KEY")
+        if not key:
+            return None
+        target_model = model or "gemini-1.5-flash"
+        if target_model == "gemini-1.5-pro":
+            target_model = "gemini-1.5-pro-latest"
+        elif target_model == "gemini-1.5-flash":
+            target_model = "gemini-1.5-flash-latest"
+        return ChatGoogleGenerativeAI(google_api_key=key, model=target_model, convert_system_message_to_human=True)
     return None

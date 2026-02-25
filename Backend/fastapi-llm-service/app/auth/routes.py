@@ -115,33 +115,44 @@ async def login(
     Login and get access token
     Note: OAuth2PasswordRequestForm expects 'username' field, but we'll use it for email
     """
-    # Try to find user by email (OAuth2PasswordRequestForm uses 'username' field)
-    user = db.query(User).filter(User.email == form_data.username).first()
-    
-    # If not found by email, try username
-    if not user:
-        user = db.query(User).filter(User.username == form_data.username).first()
-    
-    if not user or not verify_password(form_data.password, user.hashed_password):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email/username or password",
-            headers={"WWW-Authenticate": "Bearer"},
+    try:
+        # Try to find user by email (OAuth2PasswordRequestForm uses 'username' field)
+        user = db.query(User).filter(User.email == form_data.username).first()
+        
+        # If not found by email, try username
+        if not user:
+            user = db.query(User).filter(User.username == form_data.username).first()
+        
+        if not user or not verify_password(form_data.password, user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email/username or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        if user.is_active != "true":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User account is inactive"
+            )
+        
+        # Create access token
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": user.email},
+            expires_delta=access_token_expires
         )
+        
+        logger.info(f"User logged in: {user.email}")
+        return {"access_token": access_token, "token_type": "bearer"}
     
-    if user.is_active != "true":
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        logger.error(f"Error during login: {str(e)}", exc_info=True)
         raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User account is inactive"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Login failed: {str(e)}"
         )
-    
-    # Create access token
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.email},
-        expires_delta=access_token_expires
-    )
-    
-    logger.info(f"User logged in: {user.email}")
-    return {"access_token": access_token, "token_type": "bearer"}
 

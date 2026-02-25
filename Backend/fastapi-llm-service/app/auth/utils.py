@@ -32,18 +32,31 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
     Verify a plain password against a hashed password
     Uses SHA256 pre-hash to match the hashing strategy
+    Falls back to direct verification for backward compatibility
     """
     import hashlib
     
     if not plain_password:
         return False
     
-    # Hash with SHA256 first (same as in get_password_hash)
-    password_bytes = plain_password.encode('utf-8')
-    sha256_hash = hashlib.sha256(password_bytes).hexdigest()
+    try:
+        # First, try with SHA256 pre-hash (current method)
+        password_bytes = plain_password.encode('utf-8')
+        sha256_hash = hashlib.sha256(password_bytes).hexdigest()
+        
+        # Verify the SHA256 hash against the bcrypt hash
+        if pwd_context.verify(sha256_hash, hashed_password):
+            return True
+    except Exception:
+        pass  # Fall through to direct verification
     
-    # Verify the SHA256 hash against the bcrypt hash
-    return pwd_context.verify(sha256_hash, hashed_password)
+    try:
+        # Fallback: Try direct verification for backward compatibility
+        # Truncate to 72 bytes if needed (bcrypt limit)
+        password_truncated = plain_password[:72] if len(plain_password) > 72 else plain_password
+        return pwd_context.verify(password_truncated, hashed_password)
+    except Exception:
+        return False
 
 
 def get_password_hash(password: str) -> str:

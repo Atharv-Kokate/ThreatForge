@@ -34,8 +34,60 @@ async def analyze_rag(
 
     try:
         # Retrieve contexts (top 2 total: KB + web)
-        query_text = f"{request.product.name} {request.product.description}"
+        # Retrieve contexts (top 2 total: KB + web)
+        # Construct a more targeted search query for RAG
+        # We want to retrieve semantic matches for "Risk Signatures" from our KB
+        # AND context from the web about the specific technology.
+        query_parts = []
+        
+        # Primary anchor for KB retrieval
+        query_parts.append("OWASP Top 10 Risk Signatures detections")
+        
+        if request.product.category:
+            query_parts.append(request.product.category)
+        
+        if request.product.technology:
+            query_parts.append(request.product.technology)
+        
+        # Additional context keywords
+        query_parts.append("vulnerabilities security analysis")
+        
+        query_text = " ".join(query_parts) 
+        
+        # Fallback
+        if len(query_parts) == 2: # Only anchor + keywords strings
+             query_text = "OWASP Top 10 Risk Signatures detections for AI systems"
+
+        logger.info(f"Generated RAG retrieval query: '{query_text}'")
         contexts = retrieve(query_text, kb_k=2, web_k=2)
+        
+        # Build retrieved context block (numbered) and provenance list
+        provenance = []
+        context_lines = []
+        if contexts:
+            for i, c in enumerate(contexts, start=1):
+                src = c.get("source") or "kb"
+                # Support URL/title from either top-level or meta
+                url = c.get("url") or c.get("meta", {}).get("url")
+                title = c.get("title")
+                text = c.get("text") or ""
+                snippet = text if len(text) <= 1000 else text[:1000] + "..."
+                heading = f"{i}. Source: {src}"
+                if title:
+                    heading += f" | {title}"
+                if url:
+                    heading += f" | {url}"
+                context_lines.append(f"{heading}\n{snippet}")
+                provenance.append({
+                    "id": c.get("id") or str(i),
+                    "source": src,
+                    "url": url,
+                    "title": title,
+                    "snippet": snippet
+                })
+
+        context_block = "\n\n".join(context_lines) if context_lines else "(no retrieved context available)"
+
         # Build the base prompt using the same chat template as /analysis/analyze
         chat_prompt = get_chat_prompt()
         formatted_prompt = chat_prompt.format_messages(
@@ -67,61 +119,21 @@ async def analyze_rag(
             adversarial_protection="Yes" if request.questionnaire.threatSurface.adversarialProtection else "No",
             compliance_frameworks=", ".join(request.questionnaire.complianceGovernance.frameworks),
             explainability="Yes" if request.questionnaire.complianceGovernance.explainability else "No",
-            retention_policies="Yes" if request.questionnaire.complianceGovernance.retentionPolicies else "No"
+            retention_policies="Yes" if request.questionnaire.complianceGovernance.retentionPolicies else "No",
+            web_context=context_block
         )
-
-        # Build retrieved context block (numbered) and provenance list
-        provenance = []
-        context_lines = []
-        if contexts:
-            for i, c in enumerate(contexts, start=1):
-                src = c.get("source") or "kb"
-                # Support URL/title from either top-level or meta
-                url = c.get("url") or c.get("meta", {}).get("url")
-                title = c.get("title")
-                text = c.get("text") or ""
-                snippet = text if len(text) <= 1000 else text[:1000] + "..."
-                heading = f"{i}. Source: {src}"
-                if title:
-                    heading += f" | {title}"
-                if url:
-                    heading += f" | {url}"
-                context_lines.append(f"{heading}\n{snippet}")
-                provenance.append({
-                    "id": c.get("id") or str(i),
-                    "source": src,
-                    "url": url,
-                    "title": title,
-                    "snippet": snippet
-                })
-
-        context_block = "\n\n".join(context_lines) if context_lines else "(no retrieved context available)"
-
-        # Append retrieved contexts and anti-hallucination guard to the formatted prompt
-        # Try to render the chat prompt into plain text for a single-call LLM client
-        original_prompt_text = ""
-        try:
-            to_messages = getattr(formatted_prompt, "to_messages", None)
-            if callable(to_messages):
-                msgs = formatted_prompt.to_messages()
-                original_prompt_text = "\n\n".join([getattr(m, "content", str(m)) for m in msgs])
-            elif isinstance(formatted_prompt, list):
-                original_prompt_text = "\n\n".join([getattr(m, "content", str(m)) for m in formatted_prompt])
-            else:
-                original_prompt_text = str(formatted_prompt)
-        except Exception:
-            original_prompt_text = str(formatted_prompt)
-        prompt = (
-            "You are an expert cybersecurity risk analyst. Use the original prompt below and consult the retrieved contexts only when needed. "
-            "Do NOT invent facts. If the retrieved context does not support an assertion, respond with 'Insufficient context'.\n\n"
-            f"Original Prompt:\n{original_prompt_text}\n\n"
-            f"Retrieved context (top {len(contexts)}):\n{context_block}\n\n"
-            "Provide a concise risk analysis, list vulnerabilities, recommendations, and a numeric risk score (0-10)."
-        )
+        
+        # Use formatted prompt directly
+        prompt = formatted_prompt
 
         model_choice = None
         try:
-            model_choice = request.metadata.get("model") if request.metadata else None
+            if request.llm and (request.llm.provider or request.llm.model):
+                p = request.llm.provider or "groq"
+                m = request.llm.model or None
+                model_choice = f"{p}:{m}" if m else p
+            elif request.metadata:
+                model_choice = request.metadata.get("model")
         except Exception:
             model_choice = None
         llm = get_model(model_choice) or get_llm()

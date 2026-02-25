@@ -13,9 +13,7 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   (err) => {
-    const msg = err?.response?.data?.detail || err.message
-    alert(`Error: ${msg}`)
-    throw err
+    return Promise.reject(err)
   }
 )
 

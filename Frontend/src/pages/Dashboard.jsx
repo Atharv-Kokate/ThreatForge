@@ -1,116 +1,200 @@
+
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getHistory } from '../services/history.js'
+import {
+  Plus, Search, Filter, MoreVertical, FileText,
+  LayoutDashboard, ShieldAlert, Activity, Calendar
+} from 'lucide-react'
+// Charts removed
 
 export default function Dashboard() {
   const [history, setHistory] = useState([])
   const [loading, setLoading] = useState(true)
+  const [filter, setFilter] = useState('all')
 
   useEffect(() => {
-    (async () => {
-      setLoading(true)
-      try {
-        const res = await getHistory({ limit: 100 })
-        setHistory(res.history || [])
-      } finally {
-        setLoading(false)
-      }
-    })()
+    fetchData()
   }, [])
 
+  const fetchData = async () => {
+    setLoading(true)
+    try {
+      const res = await getHistory({ limit: 100 })
+      // Sort by date desc
+      const sorted = (res.assessments || []).sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      setHistory(sorted)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // --- Analytics Logic ---
+  const totalAssessments = history.length
+
+  // Severity Counts
   const severityCounts = history.reduce((acc, h) => {
-    const lvl = h?.output_data?.riskLevel || 'unknown'
+    const lvl = (h?.output_data?.riskLevel || 'unknown').toLowerCase()
     acc[lvl] = (acc[lvl] || 0) + 1
     return acc
   }, {})
 
-  const totalAssessments = history.length
   const criticalCount = (severityCounts.critical || 0) + (severityCounts.high || 0)
+  const criticalPercent = totalAssessments ? Math.round((criticalCount / totalAssessments) * 100) : 0
+
+  // Avg Score
+  const totalScore = history.reduce((sum, h) => sum + (h?.output_data?.riskScore || 0), 0)
+  const avgScore = totalAssessments ? (totalScore / totalAssessments).toFixed(1) : 0
+
+  // Last Assessment
+  const lastDate = history.length > 0 ? new Date(history[0].created_at).toLocaleDateString() : 'N/A'
+
+  // Chart Data: Severity
+  const severityData = [
+    { name: 'critical', value: severityCounts.critical || 0 },
+    { name: 'high', value: severityCounts.high || 0 },
+    { name: 'medium', value: severityCounts.medium || 0 },
+    { name: 'low', value: severityCounts.low || 0 },
+    { name: 'info', value: severityCounts.info || 0 },
+  ].filter(d => d.value > 0)
+
+  // Chart Data: Trend (Simple: avg score by date)
+  // Group by date
+  const trendMap = history.reduce((acc, h) => {
+    const date = new Date(h.created_at).toLocaleDateString()
+    if (!acc[date]) acc[date] = { date, count: 0, totalScore: 0 }
+    acc[date].count += 1
+    acc[date].totalScore += (h?.output_data?.riskScore || 0)
+    return acc
+  }, {})
+
+  const trendData = Object.values(trendMap)
+    .map(d => ({ date: d.date, avgScore: parseFloat((d.totalScore / d.count).toFixed(1)) }))
+    .sort((a, b) => new Date(a.date) - new Date(b.date))
+    .slice(-30) // Last 30 points
 
   return (
     <div className="grid">
-      <div className="row space-between" style={{ alignItems: 'center', marginBottom: '24px' }}>
+      {/* Header */}
+      <div className="flex justify-between items-center mb-4">
         <div>
-          <h2 style={{ margin: 0 }}>Dashboard</h2>
-          <p style={{ margin: '4px 0 0 0', color: '#666', fontSize: '14px' }}>
-            Overview of your security assessments
-          </p>
+          <h1>Security Dashboard</h1>
+          <p className="text-secondary">Overview of your AI system risks and vulnerabilities</p>
         </div>
-        <Link to="/new" className="btn">
-          🔍 New Assessment
+        <Link to="/new" className="btn btn-primary">
+          <Plus size={18} /> New Assessment
         </Link>
       </div>
 
-      {/* Summary Metrics */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-        <div style={{ padding: '20px', background: '#f5f5f5', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-          <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>Total Assessments</div>
-          <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#333' }}>{totalAssessments}</div>
+      {/* Metric Cards */}
+      <div className="grid grid-4 gap-4">
+        <div className="card flex items-center gap-4">
+          <div style={{ background: '#eff6ff', padding: '12px', borderRadius: '8px', color: '#2563eb' }}>
+            <LayoutDashboard size={24} />
+          </div>
+          <div>
+            <div className="text-sm text-secondary">Total Assessments</div>
+            <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{totalAssessments}</div>
+          </div>
         </div>
-        <div style={{ padding: '20px', background: '#fff3cd', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-          <div style={{ fontSize: '14px', color: '#856404', marginBottom: '8px' }}>Critical/High Risk</div>
-          <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#856404' }}>{criticalCount}</div>
+
+        <div className="card flex items-center gap-4">
+          <div style={{ background: '#fef2f2', padding: '12px', borderRadius: '8px', color: '#dc2626' }}>
+            <ShieldAlert size={24} />
+          </div>
+          <div>
+            <div className="text-sm text-secondary">Critical / High Risk</div>
+            <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{criticalPercent}%</div>
+          </div>
         </div>
-        <div style={{ padding: '20px', background: '#d1ecf1', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-          <div style={{ fontSize: '14px', color: '#0c5460', marginBottom: '8px' }}>Low Risk</div>
-          <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#0c5460' }}>{severityCounts.low || 0}</div>
+
+        <div className="card flex items-center gap-4">
+          <div style={{ background: '#fffbeb', padding: '12px', borderRadius: '8px', color: '#d97706' }}>
+            <Activity size={24} />
+          </div>
+          <div>
+            <div className="text-sm text-secondary">Avg Risk Score</div>
+            <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{avgScore}<span style={{ fontSize: '14px', color: '#94a3b8' }}>/10</span></div>
+          </div>
         </div>
-        <div style={{ padding: '20px', background: '#d4edda', borderRadius: '8px', boxShadow: '0 2px 4px rgba(0,0,0,0.1)' }}>
-          <div style={{ fontSize: '14px', color: '#155724', marginBottom: '8px' }}>Info</div>
-          <div style={{ fontSize: '32px', fontWeight: 'bold', color: '#155724' }}>{severityCounts.info || 0}</div>
+
+        <div className="card flex items-center gap-4">
+          <div style={{ background: '#f0fdf4', padding: '12px', borderRadius: '8px', color: '#16a34a' }}>
+            <Calendar size={24} />
+          </div>
+          <div>
+            <div className="text-sm text-secondary">Last Assessment</div>
+            <div style={{ fontSize: '18px', fontWeight: 'bold' }}>{lastDate}</div>
+          </div>
         </div>
       </div>
 
-      {/* History Table */}
-      <div className="card">
-        <h3 style={{ marginTop: 0, marginBottom: '16px' }}>Assessment History</h3>
-      {loading ? (
-        <p style={{ textAlign: 'center', padding: '40px', color: '#666' }}>Loading assessments...</p>
-      ) : history.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '40px' }}>
-          <p style={{ color: '#666', marginBottom: '16px' }}>No assessments yet</p>
-          <Link to="/new" className="btn">Create Your First Assessment</Link>
+      {/* Charts Section Removed as per request */}
+
+      {/* Recent Assessments Table */}
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        <div style={{ padding: '24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3>Recent Assessments</h3>
+          <div className="flex gap-2">
+            <div style={{ position: 'relative' }}>
+              <Search size={16} style={{ position: 'absolute', left: '10px', top: '10px', color: '#94a3b8' }} />
+              <input type="text" placeholder="Search..." style={{ paddingLeft: '32px', paddingRight: '12px', width: '200px' }} />
+            </div>
+            <button className="btn btn-secondary btn-ghost"><Filter size={16} /> Filter</button>
+          </div>
         </div>
-      ) : (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+
+        <div className="table-container" style={{ border: 'none', borderRadius: 0 }}>
+          <table>
             <thead>
-              <tr style={{ borderBottom: '2px solid #ddd' }}>
-                <th style={{ padding: '12px', textAlign: 'left' }}>Date</th>
-                <th style={{ padding: '12px', textAlign: 'left' }}>Product</th>
-                <th style={{ padding: '12px', textAlign: 'left' }}>System Type</th>
-                <th style={{ padding: '12px', textAlign: 'left' }}>Risk Level</th>
-                <th style={{ padding: '12px', textAlign: 'left' }}>Risk Score</th>
-                <th style={{ padding: '12px', textAlign: 'left' }}>Actions</th>
+              <tr>
+                <th>Date</th>
+                <th>Product Name</th>
+                <th>System Type</th>
+                <th>Risk Level</th>
+                <th>Risk Score</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {history.map(h => (
-                <tr key={h.id} style={{ borderBottom: '1px solid #eee' }}>
-                  <td style={{ padding: '12px' }}>{new Date(h.created_at).toLocaleDateString()}</td>
-                  <td style={{ padding: '12px', fontWeight: 500 }}>{h?.input_data?.product?.name || 'N/A'}</td>
-                  <td style={{ padding: '12px', fontSize: '14px', color: '#666' }}>
-                    {h?.input_data?.questionnaire?.applicationContext?.systemType || 'N/A'}
-                  </td>
-                  <td style={{ padding: '12px' }}>
-                    <span className={`badge ${h?.output_data?.riskLevel || 'unknown'}`}>
-                      {(h?.output_data?.riskLevel || 'unknown').toUpperCase()}
-                    </span>
-                  </td>
-                  <td style={{ padding: '12px', fontWeight: 'bold' }}>
-                    {h?.output_data?.riskScore || 'N/A'}/10
-                  </td>
-                  <td style={{ padding: '12px' }}>
-                    <Link to={`/report/${h.id}`} className="btn" style={{ padding: '6px 12px', fontSize: '14px' }}>
-                      View Report
-                    </Link>
-                  </td>
-                </tr>
-              ))}
+              {loading ? (
+                <tr><td colSpan="6" style={{ textAlign: 'center', padding: '40px' }}>Loading...</td></tr>
+              ) : history.length === 0 ? (
+                <tr><td colSpan="6" style={{ textAlign: 'center', padding: '40px' }}>No assessments found.</td></tr>
+              ) : (
+                history.map(h => (
+                  <tr key={h.id}>
+                    <td className="text-secondary">{new Date(h.created_at).toLocaleDateString()}</td>
+                    <td style={{ fontWeight: 500 }}>{h?.input_data?.product?.name || 'Untitled'}</td>
+                    <td><span style={{ background: '#f1f5f9', padding: '4px 8px', borderRadius: '4px', fontSize: '12px' }}>{h?.input_data?.questionnaire?.applicationContext?.systemType || 'N/A'}</span></td>
+                    <td>
+                      <span className={`badge ${(h?.output_data?.riskLevel || 'unknown').toLowerCase()}`}>
+                        {h?.output_data?.riskLevel || 'UNKNOWN'}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="flex items-center gap-2">
+                        <span style={{ fontWeight: 'bold', width: '20px' }}>{h?.output_data?.riskScore}</span>
+                        <div style={{ width: '80px', height: '6px', background: '#e2e8f0', borderRadius: '3px', overflow: 'hidden' }}>
+                          <div style={{
+                            width: `${(h?.output_data?.riskScore || 0) * 10}%`,
+                            background: h?.output_data?.riskScore > 7 ? '#ef4444' : h?.output_data?.riskScore > 4 ? '#f59e0b' : '#22c55e',
+                            height: '100%'
+                          }} />
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <Link to={`/report/${h.id}`} className="btn btn-ghost" style={{ padding: '6px' }}>
+                        <FileText size={16} /> View
+                      </Link>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
-      )}
       </div>
     </div>
   )

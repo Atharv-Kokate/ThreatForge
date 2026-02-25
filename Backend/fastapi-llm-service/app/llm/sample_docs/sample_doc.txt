@@ -1,23 +1,153 @@
-This document provides a brief overview of secure design patterns for AI/ML systems and common vulnerabilities to watch for.
+OWASP Top 10 for LLM Applications: Risk Analysis Signatures
 
-Authentication & Authorization
-- Use strong authentication (OAuth2 / OIDC) for user-facing systems.
-- Prefer short-lived access tokens and rotate keys; validate scopes on every API call.
+This knowledge base defines the detection logic for the OWASP Top 10 vulnerabilities in LLM systems. Use these signatures to identify risks based on system configuration.
 
-Data Handling & Privacy
-- Classify data sources and mark sensitive fields (PII, PHI, credentials).
-- Apply input sanitization and output masking before storing or sending to models.
 
-Model & Prompt Security
-- Apply prompt guardrails to prevent prompt injection and leakage of sensitive data.
-- Limit model exposure by filtering or redacting user-supplied content where applicable.
+- LLM01: Prompt Injection
+Risk Signature (When to Flag):
+  Input Vector: System accepts `free-text` inputs (e.g., Chatbot, Customer Support) or `file-uploads`.
+  Control Gap: `Prompt Guardrails` are marked as "No" or "None".
+  Access Level: System has `Public` access or allows anonymous users.
 
-Infrastructure & Monitoring
-- Enforce least-privilege IAM for model and data storage access.
-- Implement anomaly detection and logging for unusual model queries or high-cost patterns.
+Context:
+Attackers manipulate the model via crafted inputs to bypass security controls.
 
-Provenance & Auditing
-- Keep provenance for external data and web-sourced evidence (URL, title, snippet).
-- Store high-level summaries in the primary DB and archive raw model outputs separately when needed.
+Recommendations:
+-Implement robust prompt guardrails (e.g., NeMo, Lakera) to filter malicious inputs.
+-Segregate user data from system instructions using delimiters (e.g., XML tags).
+-Restrict input length and character sets.
 
-This sample document is intentionally short; ingest it to test RAG retrieval and provenance features.
+---
+
+- LLM02: Insecure Output Handling
+Risk Signature (When to Flag):
+  Output Vector: Model output is displayed directly to `end-users` (HTML/JS risk) or passed to `Shell`/`SQL` systems.
+  Integrations: System connects to `Databases` or `Internal APIs`.
+  Control Gap: `Data Sanitization` (Output) is "No".
+
+Context:
+LLM output is treated as trusted, leading to XSS, CSRF, or SSRF when executed by downstream components.
+
+Recommendations:
+-Treat all model output as untrusted user input; apply strict encoding (HTML/SQL).
+-Run downstream code execution in sandboxed environments.
+
+---
+
+- LLM03: Training Data Poisoning
+Risk Signature (When to Flag):
+  Data Source: System uses `Web Scraped` data, `Public Datasets`, or unverified `User Feedback` for training/fine-tuning.
+  Model Lifecycle: Configuration indicates `Fine-tuning` or `Continuous Learning`.
+  Control Gap: Lack of supply chain verification (SBOM) for data.
+
+Context:
+Malicious data introduced during training compromises the model's integrity or ethical behavior.
+
+Recommendations:
+-Verify the provenance of all training data (Supply Chain integrity).
+-Sanitize and review datasets for adversarial patterns before training.
+
+---
+
+- LLM04: Model Denial of Service
+Risk Signature (When to Flag):
+  Access Method: `Public API` access is available.
+  Resource usage: Model is "Expensive" (e.g., GPT-4) or has a large context window.
+  Control Gap: Lack of strict `Rate Limiting` or per-request resource caps.
+
+Context:
+Attackers exhaust system resources (tokens, compute) leading to high costs or service degradation.
+
+Recommendations:
+-Enforce strict per-user and per-IP rate limiting.
+-Cap the maximum number of tokens per request and response.
+
+---
+
+- LLM05: Supply Chain Vulnerabilities
+Risk Signature (When to Flag):
+  Technology: Uses third-party models (`HuggingFace`, `CivitAI`) or plugins.
+  Maintenance: Dependencies are outdated or unverified (`pickle` files).
+  Control Gap: Missing Software Bill of Materials (SBOM).
+
+Context:
+Vulnerable components (libraries, pre-trained models) compromise the application.
+
+Recommendations:
+-Maintain a live SBOM for all AI libraries and models.
+-Scan model files (e.g., .pt, .pkl) for malware before loading.
+
+---
+
+- LLM06: Sensitive Information Disclosure
+Risk Signature (When to Flag):
+  Data Handling: System processes `PII`, `PHI`, `Financial Data`, or `Secrets`.
+  Model Visibility: Model is trained/fine-tuned on private data but lacks `Access Control`.
+  Control Gap: `Data Sanitization` (Anonymization) is "No" or weak.
+
+Context:
+The model inadvertently reveals private data in its responses (memorization).
+
+Recommendations:
+-Scrub specific PII/PHI from training and RAG data sources.
+-Implement output filters to redact sensitive patterns (e.g., SSN, rigid regex).
+
+---
+
+- LLM07: Insecure Plugin Design
+Risk Signature (When to Flag):
+  Architecture: System uses `Plugins`, `Tools`, or `Extensions` (e.g., Zapier, Email, GitHub).
+  Interaction: Plugins perform actionable side-effects (Write/Delete).
+  Control Gap: No "Human-in-the-loop" confirmation for sensitive actions.
+
+Context:
+Plugins accept insecure inputs or have excessive permissions, allowing attackers to control the system.
+
+Recommendations:
+-Require explicit user confirmation for all high-impact actions (e.g., "Send Email?").
+-Design plugins to accept typed parameters only, not free text.
+
+---
+
+- LLM08: Excessive Agency
+Risk Signature (When to Flag):
+  System Type: `Autonomous Agent` or `Agentic Workflow`.
+  Capabilities: System can `Plan`, `Reason`, or `Execute` multi-step actions autonomously.
+  Control Gap: Lack of "Human oversight" or open-ended loops.
+
+Context:
+The agent performs unexpected or harmful actions due to lack of constraints.
+
+Recommendations:
+-Limit the agent's toolset to the minimum necessary functions.
+-Implement timeouts and loop limits to prevent infinite execution.
+
+---
+
+- LLM09: Overreliance
+Risk Signature (When to Flag):
+  Criticality: System is `Business-Critical` or `Safety-Critical`.
+  Usage: Output is used for decision-making without `Manual Review`.
+  Control Gap: No `Explainability` or citation mechanisms.
+
+Context:
+Users trust the model's hallucinations, leading to safety failures or incorrect decisions.
+
+Recommendations:
+-Provide citations (RAG source chunks) for all factual claims.
+-Display prominent disclaimers about AI fallibility.
+
+---
+
+- LLM10: Model Theft
+Risk Signature (When to Flag):
+  Deployment: Proprietary model deployed `On-premise`, on `Edge Devices`, or via `Public API`.
+  Value: Model represents significant IP (e.g., specialized fine-tuned model).
+  Control Gap: Weak authentication or lack of watermarking.
+
+Context:
+Competitors extract the model weights or distill its knowledge via query access.
+
+Recommendations:
+-Centralize model inference behind a secure, authenticated API gateway.
+-Monitor query logs for extraction patterns (e.g., systematic high-entropy queries).

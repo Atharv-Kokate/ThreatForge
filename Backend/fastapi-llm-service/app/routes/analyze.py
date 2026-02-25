@@ -17,7 +17,8 @@ from app.llm.parser import (
     extract_vulnerabilities,
     extract_recommendations,
     extract_risk_score,
-    determine_risk_level
+    determine_risk_level,
+    extract_summary
 )
 from app.database.session import get_db
 from app.database.models import RiskAssessment
@@ -62,6 +63,46 @@ async def analyze_risk(
         
         # Get prompt template
         chat_prompt = get_chat_prompt()
+
+        # Perform web search for context
+        from app.llm.web_search import duckduckgo_search
+        web_context_str = "No web context available."
+        try:
+            # Construct a more targeted search query
+            # Searching for the raw description often yields irrelevant results (e.g. dictionary definitions)
+            # We want to find security risks related to the tech stack and system type
+            query_parts = []
+            if request.product.category:
+                query_parts.append(request.product.category)
+            
+            if request.product.technology:
+                query_parts.append(request.product.technology)
+            
+            # Add security context keywords
+            query_parts.append("security risks vulnerabilities OWASP")
+            
+            if len(query_parts) > 1:
+                search_query = " ".join(query_parts)
+            else:
+                # Fallback to description if metadata is missing
+                search_query = request.product.description or "AI system security risks"
+
+            # Limit query length if needed, but relying on DDGS to handle it or truncate reasonably
+            search_results = duckduckgo_search(search_query, top_k=3)
+            if search_results:
+                context_parts = ["Web Search Results:"]
+                for idx, res in enumerate(search_results, 1):
+                    context_parts.append(f"Result {idx}:")
+                    context_parts.append(f"Title: {res.get('title', 'N/A')}")
+                    context_parts.append(f"Snippet: {res.get('snippet', 'N/A')}")
+                    context_parts.append(f"URL: {res.get('url', 'N/A')}")
+                    context_parts.append("---")
+                web_context_str = "\n".join(context_parts)
+            else:
+                web_context_str = "Web search returned no results."
+        except Exception as e:
+            logger.warning(f"Web search context generation failed: {e}")
+            web_context_str = "Web search context generation failed."
         
         # Format the prompt with questionnaire data
         formatted_prompt = chat_prompt.format_messages(
@@ -93,7 +134,8 @@ async def analyze_risk(
             adversarial_protection="Yes" if q.threatSurface.adversarialProtection else "No",
             compliance_frameworks=", ".join(q.complianceGovernance.frameworks),
             explainability="Yes" if q.complianceGovernance.explainability else "No",
-            retention_policies="Yes" if q.complianceGovernance.retentionPolicies else "No"
+            retention_policies="Yes" if q.complianceGovernance.retentionPolicies else "No",
+            web_context=web_context_str
         )
         
         # Get LLM response
@@ -104,6 +146,11 @@ async def analyze_risk(
         analysis_text = response.content
         
         # Extract structured information from the response
+        summary = extract_summary(analysis_text)
+        if not summary:
+             # Fallback if extraction fails (e.g. strict format missing)
+             summary = analysis_text[:500] + "..." if len(analysis_text) > 500 else analysis_text
+
         vulnerabilities = extract_vulnerabilities(analysis_text)
         recommendations = extract_recommendations(analysis_text)
         risk_score = extract_risk_score(analysis_text)
@@ -114,7 +161,7 @@ async def analyze_risk(
         # Create response
         result = AnalysisResponse(
             success=True,
-            summary=analysis_text[:500] + "..." if len(analysis_text) > 500 else analysis_text,
+            summary=summary,
             vulnerabilities=vulnerabilities,
             recommendations=recommendations,
             riskScore=risk_score,
@@ -178,6 +225,14 @@ async def get_available_models():
             "models": [
                 {"name": "claude-3-5-sonnet-20241022", "max_tokens": 8192},
                 {"name": "claude-3-haiku-20240307", "max_tokens": 8192}
+            ]
+        })
+    if os.getenv("GOOGLE_API_KEY"):
+        providers.append({
+            "provider": "google",
+            "models": [
+                {"name": "gemini-1.5-flash", "max_tokens": 1048576},
+                {"name": "gemini-1.5-pro", "max_tokens": 2097152}
             ]
         })
     return {"providers": providers}

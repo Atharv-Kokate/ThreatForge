@@ -45,6 +45,12 @@ async def get_analysis_status(
             detail="You don't have permission to access this analysis"
         )
     
-    # Return the output data
-    return assessment.output_data
+    # Return full details
+    return {
+        "id": str(assessment.id),
+        "requestId": str(assessment.id),
+        "created_at": assessment.created_at.isoformat(),
+        "input_data": assessment.input_data,
+        "output_data": assessment.output_data
+    }
 

@@ -14,5 +14,189 @@
       "source": "sample_docs",
       "title": "RAG Sample Document"
     }
+  },
+  "owasp_kb_v1_0_0_2b13290c": {
+    "doc_id": "owasp_kb_v1_0",
+    "text": "OWASP Single Top 10 for Large Language Model (LLM) Applications\nComprehensive Knowledge Base for Risk Analysis Context\n\nThis document serves as a knowledge base for analyzing AI/ML systems against the OWASP Top 10 for LLM Applications. It provides definitions, attack vectors, and specific mitigation strategies based on system configurations.\n\n---\n\n- LLM01: Prompt Injection\n\n- Description\nPrompt Injection occurs when an attacker manipulates the functioning of a Large Language Model (LLM) through crafted inputs. This can cause the LLM to ignore its pre-programmed instructions and execute the attacker's intent.",
+    "metadata": {
+      "type": "knowledge_base",
+      "source": "OWASP"
+    }
+  },
+  "owasp_kb_v1_0_1_807039cb": {
+    "doc_id": "owasp_kb_v1_0",
+    "text": "- Types\n1.  Direct Injection (Jailbreaking): Overwriting the system prompt directly via user input (e.g., \"Ignore previous instructions and do X\").\n2.  Indirect Injection: The LLM processes tainted external content (e.g., a website or email) that contains hidden instructions to manipulate the model.\n\n- Risk Factors (System Configuration Signs)\n   1. User Input: `Text` inputs are highly susceptible.\n   2. Prompt Guardrails: `No` or \"None\". A lack of guardrails is a critical vulnerability.\n   3. Access: Publicly accessible APIs or Chat interfaces.",
+    "metadata": {
+      "type": "knowledge_base",
+      "source": "OWASP"
+    }
+  },
+  "owasp_kb_v1_0_2_13352430": {
+    "doc_id": "owasp_kb_v1_0",
+    "text": "- Mitigation Strategies\n   1. Privilege Control: The LLM should not have root/admin access to backend systems.\n   2. Human in the Loop: Require user approval for privileged actions.\n   3. Segregation: Separate content from instructions in the prompt (e.g., using delimiters like `###`).\n   4. Guardrails: Implement specific input filters (e.g., NeMo Guardrails, NVIDIA) to detect injection attempts.\n\n---\n\n- LLM02: Insecure Output Handling\n\n- Description\nThis vulnerability occurs when an LLM's output is blindly trusted and passed directly to backend systems, databases, or browsers without sanitization or validation. This allows the LLM (potentially compromised prompt injection) to execute XSS, CSRF, or SSRF attacks.",
+    "metadata": {
+      "type": "knowledge_base",
+      "source": "OWASP"
+    }
+  },
+  "owasp_kb_v1_0_3_43c1707d": {
+    "doc_id": "owasp_kb_v1_0",
+    "text": "- Risk Factors (System Configuration Signs)\n   1. Output Consumption: Output is sent to `Databases`, `Shell`, or `HTML/Browser`.\n   2. Integrations: The model is connected to `SQL` databases or `APIs`.\n   3. Data Sanitization: `No`. Failing to sanitize output is the primary cause.\n\n- Mitigation Strategies\n   1. Zero Trust: Treat all LLM output as untrusted user input.\n   2. Encoding: Apply proper output encoding (HTML, JavaScript, SQL) before rendering or executing.\n   3. Sandboxing: Run code execution capabilities in isolated environments.\n\n---\n\n- LLM03: Training Data Poisoning\n\n- Description\nAttackers manipulate the training data or fine-tuning data of the LLM to introduce vulnerabilities, backdoors, or biases. This compromises the model's security, effectiveness, or ethical behavior.",
+    "metadata": {
+      "type": "knowledge_base",
+      "source": "OWASP"
+    }
+  },
+  "owasp_kb_v1_0_4_46e563bb": {
+    "doc_id": "owasp_kb_v1_0",
+    "text": "- Risk Factors (System Configuration Signs)\n   1. Data Sources: Using unverified `Public Datasets`, `Web Scraped` data, or `User Feedback`.\n   2. Maintenance: `Fine-tuning` processes that do not validate input data.\n   3. Supply Chain: Relying on external, unverified pre-trained models.\n\n- Mitigation Strategies\n   1. Supply Chain Verification: Verify the provenance of all training data (SBOM).\n   2. Sandboxing: Verify data sources and \"clean\" datasets before use.\n   3. Robustness Testing: Use techniques like federated learning or adversarial training to detect outliers.\n\n---\n\n- LLM04: Model Denial of Service (DoS)",
+    "metadata": {
+      "type": "knowledge_base",
+      "source": "OWASP"
+    }
+  },
+  "owasp_kb_v1_0_5_1f6af5ed": {
+    "doc_id": "owasp_kb_v1_0",
+    "text": "---\n\n- LLM04: Model Denial of Service (DoS)\n\n- Description\nAttackers interact with an LLM in a way that consumes an exceptionally high amount of resources (tokens, context window, compute), degrading quality of service or incurring high costs (Resource exhaustion).\n\n- Risk Factors (System Configuration Signs)\n   1. Access Methods: Public `API` access without rate limiting.\n   2. Model Type: Using very large, expensive models (e.g., `GPT-4`) without quotas.\n   3. Traffic: High volume of automated requests.\n\n- Mitigation Strategies\n   1. Rate Limiting: Implement strict per-user and per-IP rate limits.\n   2. Resource Caps: Limit the number of queuing steps or total tokens per request.\n   3. Input Validation: Restrict the size (length) of user inputs before they reach the LLM.\n\n---",
+    "metadata": {
+      "type": "knowledge_base",
+      "source": "OWASP"
+    }
+  },
+  "owasp_kb_v1_0_6_0868d81b": {
+    "doc_id": "owasp_kb_v1_0",
+    "text": "---\n\n- LLM05: Supply Chain Vulnerabilities\n\n- Description\nThe application lifecycle depends on third-party components: pre-trained models, datasets, and plugins. Expanding the attack surface through vulnerable dependencies (e.g., a malicious PyPi package or a compromised HuggingFace model).\n\n- Risk Factors (System Configuration Signs)\n   1. Model Source: Downloading models from public hubs without verification (`HuggingFace`, `CivitAI`).\n   2. Integrations: Using numerous third-party `Plugins`.\n   3. Environment: Outdated libraries (e.g., old `transformers` or `langchain` versions).",
+    "metadata": {
+      "type": "knowledge_base",
+      "source": "OWASP"
+    }
+  },
+  "owasp_kb_v1_0_7_32415bd4": {
+    "doc_id": "owasp_kb_v1_0",
+    "text": "- Mitigation Strategies\n   1. SBOM: Maintain a Software Bill of Materials for all AI components.\n   2. Scanning: Regularly scan model files (e.g., `.pkl`, `.pt`) for malware (Pickle scanning).\n   3. Vetting: Only use models from trusted publishers.\n\n---\n\n- LLM06: Sensitive Information Disclosure\n\n- Description\nThe LLM may inadvertently reveal confidential information, proprietary algorithms, or other sensitive data in its responses. This can happen if the model was trained on sensitive data (PII) or if the context window includes private data.",
+    "metadata": {
+      "type": "knowledge_base",
+      "source": "OWASP"
+    }
+  },
+  "owasp_kb_v1_0_8_c6759704": {
+    "doc_id": "owasp_kb_v1_0",
+    "text": "- Risk Factors (System Configuration Signs)\n   1. Data Handling: Contains `Sensitive`, `PII`, `PHI`, or `Secrets`.\n   2. Sanitization: `No sanitization` before model use.\n   3. Multi-tenant: `Yes` - Risk of data leakage between tenants if context isn't isolated.\n\n- Mitigation Strategies\n   1. Data Scrubbing: Sanitize and scrub PII/PHI from training and RAG context data.\n   2. Output Filtering: Implement regex-based filters on the output to catch patterns like SSNs or Keys.\n   3. Access Control: Ensure the LLM only has access to data the current user is authorized to see (Authorization-aware Retrieval).\n\n---\n\n- LLM07: Insecure Plugin Design",
+    "metadata": {
+      "type": "knowledge_base",
+      "source": "OWASP"
+    }
+  },
+  "owasp_kb_v1_0_9_e1a31687": {
+    "doc_id": "owasp_kb_v1_0",
+    "text": "---\n\n- LLM07: Insecure Plugin Design\n\n- Description\nLLM plugins (extensions) often accept free-text input and bridge the LLM to external actions. If these plugins do not enforce strict input validation and access control, they can be exploited to perform unauthorized actions (like sending emails or deleting files).\n\n- Risk Factors (System Configuration Signs)\n   1. Integrations: System uses `Plugins` or `Tools` (e.g., Zapier, Email, GitHub).\n   2. Interaction Control: `No` prompt guardrails or confirmation steps.\n   3. Auth: Plugins running with broad permissions.",
+    "metadata": {
+      "type": "knowledge_base",
+      "source": "OWASP"
+    }
+  },
+  "owasp_kb_v1_0_10_7e483fe4": {
+    "doc_id": "owasp_kb_v1_0",
+    "text": "- Mitigation Strategies\n   1. Parameterized Inputs: Force plugins to accept typed parameters, not raw text.\n   2. Least Privilege: Plugins should run with the minimum necessary identity/scope.\n   3. User Confirmation: Require explicit \"Yes/No\" from the human before a plugin executes a side-effect (e.g., \"Send email?\").\n\n---\n\n- LLM08: Excessive Agency\n\n- Description\nGranting an LLM excessive permissions, autonomy, or ability to \"reason\" and execute chains of actions without adequate supervision. This can lead to unexpected and potentially harmful outcomes if the model hallucinates or is tricked.\n\n- Risk Factors (System Configuration Signs)\n   1. System Type: `Autonomous Agent` or `AutoGPT`.\n   2. Human in Loop: `No`.\n   3. Permissions: Read/Write access to critical systems.",
+    "metadata": {
+      "type": "knowledge_base",
+      "source": "OWASP"
+    }
+  },
+  "owasp_kb_v1_0_11_a525a2ab": {
+    "doc_id": "owasp_kb_v1_0",
+    "text": "- Mitigation Strategies\n   1. Limit Scope: Restrict the tools and functions the LLM can call.\n   2. Human Oversight: Mandate human approval for high-impact actions.\n   3. Timeouts: Avoid open-ended loops where the agent can invoke itself indefinitely.\n\n---\n\n- LLM09: Overreliance\n\n- Description\nUsers or systems trusting the LLM's output without verification. This \"hallucination\" risk can lead to bad automated decisions, insecure code generation, or misinformation.\n\n- Risk Factors (System Configuration Signs)\n   1. Criticality: `High` or `Safety-critical`.\n   2. Output Consumption: Automated downstream processing without human review.\n   3. Explainability: `No` mechanism to trace why a decision was made.",
+    "metadata": {
+      "type": "knowledge_base",
+      "source": "OWASP"
+    }
+  },
+  "owasp_kb_v1_0_12_7620fe64": {
+    "doc_id": "owasp_kb_v1_0",
+    "text": "- Mitigation Strategies\n   1. Disclaimers: Explicitly label AI output as potentialy inaccurate.\n   2. Verification: Cross-reference output with trusted sources (RAG is a mitigation here!).\n   3. Code Review: Never deploy LLM-generated code without manual security review.\n\n---\n\n- LLM10: Model Theft\n\n- Description\nUnauthorized access to, copying of, or \"distillation\" of proprietary LLM models. This includes extracting the model weights or querying the API to replicate its behavior (training a shadow model).\n\n- Risk Factors (System Configuration Signs)\n   1. Visibility: `Public` or `External`.\n   2. Deployment: `On-premise` (risk of physical theft) or `Edge` device.\n   3. Access Control: Weak `Authentication` on the inference API.",
+    "metadata": {
+      "type": "knowledge_base",
+      "source": "OWASP"
+    }
+  },
+  "owasp_kb_v1_0_13_1cd32bf7": {
+    "doc_id": "owasp_kb_v1_0",
+    "text": "- Mitigation Strategies\n   1. Access Control: Strong API key management and role-based access.\n   2. Watermarking: Watermark model outputs to detect distillation.\n   3. Audit Logs: Monitor for unusual query patterns (e.g., extraction attacks).",
+    "metadata": {
+      "type": "knowledge_base",
+      "source": "OWASP"
+    }
+  },
+  "owasp_kb_v1_0_0_bf7cf3af": {
+    "doc_id": "owasp_kb_v1_0",
+    "text": "OWASP Top 10 for LLM Applications: Risk Analysis Signatures\n\nThis knowledge base defines the detection logic for the OWASP Top 10 vulnerabilities in LLM systems. Use these signatures to identify risks based on system configuration.\n\n\n- LLM01: Prompt Injection\nRisk Signature (When to Flag):\n  Input Vector: System accepts `free-text` inputs (e.g., Chatbot, Customer Support) or `file-uploads`.\n  Control Gap: `Prompt Guardrails` are marked as \"No\" or \"None\".\n  Access Level: System has `Public` access or allows anonymous users.\n\nContext:\nAttackers manipulate the model via crafted inputs to bypass security controls.",
+    "metadata": {
+      "type": "knowledge_base",
+      "source": "OWASP"
+    }
+  },
+  "owasp_kb_v1_0_1_53eeca1d": {
+    "doc_id": "owasp_kb_v1_0",
+    "text": "Context:\nAttackers manipulate the model via crafted inputs to bypass security controls.\n\nRecommendations:\n-Implement robust prompt guardrails (e.g., NeMo, Lakera) to filter malicious inputs.\n-Segregate user data from system instructions using delimiters (e.g., XML tags).\n-Restrict input length and character sets.\n\n---\n\n- LLM02: Insecure Output Handling\nRisk Signature (When to Flag):\n  Output Vector: Model output is displayed directly to `end-users` (HTML/JS risk) or passed to `Shell`/`SQL` systems.\n  Integrations: System connects to `Databases` or `Internal APIs`.\n  Control Gap: `Data Sanitization` (Output) is \"No\".\n\nContext:\nLLM output is treated as trusted, leading to XSS, CSRF, or SSRF when executed by downstream components.",
+    "metadata": {
+      "type": "knowledge_base",
+      "source": "OWASP"
+    }
+  },
+  "owasp_kb_v1_0_2_5aef17eb": {
+    "doc_id": "owasp_kb_v1_0",
+    "text": "Context:\nLLM output is treated as trusted, leading to XSS, CSRF, or SSRF when executed by downstream components.\n\nRecommendations:\n-Treat all model output as untrusted user input; apply strict encoding (HTML/SQL).\n-Run downstream code execution in sandboxed environments.\n\n---\n\n- LLM03: Training Data Poisoning\nRisk Signature (When to Flag):\n  Data Source: System uses `Web Scraped` data, `Public Datasets`, or unverified `User Feedback` for training/fine-tuning.\n  Model Lifecycle: Configuration indicates `Fine-tuning` or `Continuous Learning`.\n  Control Gap: Lack of supply chain verification (SBOM) for data.\n\nContext:\nMalicious data introduced during training compromises the model's integrity or ethical behavior.",
+    "metadata": {
+      "type": "knowledge_base",
+      "source": "OWASP"
+    }
+  },
+  "owasp_kb_v1_0_3_79eca7dc": {
+    "doc_id": "owasp_kb_v1_0",
+    "text": "Context:\nMalicious data introduced during training compromises the model's integrity or ethical behavior.\n\nRecommendations:\n-Verify the provenance of all training data (Supply Chain integrity).\n-Sanitize and review datasets for adversarial patterns before training.\n\n---\n\n- LLM04: Model Denial of Service\nRisk Signature (When to Flag):\n  Access Method: `Public API` access is available.\n  Resource usage: Model is \"Expensive\" (e.g., GPT-4) or has a large context window.\n  Control Gap: Lack of strict `Rate Limiting` or per-request resource caps.\n\nContext:\nAttackers exhaust system resources (tokens, compute) leading to high costs or service degradation.\n\nRecommendations:\n-Enforce strict per-user and per-IP rate limiting.\n-Cap the maximum number of tokens per request and response.\n\n---",
+    "metadata": {
+      "type": "knowledge_base",
+      "source": "OWASP"
+    }
+  },
+  "owasp_kb_v1_0_4_6adb130c": {
+    "doc_id": "owasp_kb_v1_0",
+    "text": "Recommendations:\n-Enforce strict per-user and per-IP rate limiting.\n-Cap the maximum number of tokens per request and response.\n\n---\n\n- LLM05: Supply Chain Vulnerabilities\nRisk Signature (When to Flag):\n  Technology: Uses third-party models (`HuggingFace`, `CivitAI`) or plugins.\n  Maintenance: Dependencies are outdated or unverified (`pickle` files).\n  Control Gap: Missing Software Bill of Materials (SBOM).\n\nContext:\nVulnerable components (libraries, pre-trained models) compromise the application.\n\nRecommendations:\n-Maintain a live SBOM for all AI libraries and models.\n-Scan model files (e.g., .pt, .pkl) for malware before loading.\n\n---",
+    "metadata": {
+      "type": "knowledge_base",
+      "source": "OWASP"
+    }
+  },
+  "owasp_kb_v1_0_5_34cfff96": {
+    "doc_id": "owasp_kb_v1_0",
+    "text": "Recommendations:\n-Maintain a live SBOM for all AI libraries and models.\n-Scan model files (e.g., .pt, .pkl) for malware before loading.\n\n---\n\n- LLM06: Sensitive Information Disclosure\nRisk Signature (When to Flag):\n  Data Handling: System processes `PII`, `PHI`, `Financial Data`, or `Secrets`.\n  Model Visibility: Model is trained/fine-tuned on private data but lacks `Access Control`.\n  Control Gap: `Data Sanitization` (Anonymization) is \"No\" or weak.\n\nContext:\nThe model inadvertently reveals private data in its responses (memorization).\n\nRecommendations:\n-Scrub specific PII/PHI from training and RAG data sources.\n-Implement output filters to redact sensitive patterns (e.g., SSN, rigid regex).\n\n---",
+    "metadata": {
+      "type": "knowledge_base",
+      "source": "OWASP"
+    }
+  },
+  "owasp_kb_v1_0_6_ee2c1418": {
+    "doc_id": "owasp_kb_v1_0",
+    "text": "---\n\n- LLM07: Insecure Plugin Design\nRisk Signature (When to Flag):\n  Architecture: System uses `Plugins`, `Tools`, or `Extensions` (e.g., Zapier, Email, GitHub).\n  Interaction: Plugins perform actionable side-effects (Write/Delete).\n  Control Gap: No \"Human-in-the-loop\" confirmation for sensitive actions.\n\nContext:\nPlugins accept insecure inputs or have excessive permissions, allowing attackers to control the system.\n\nRecommendations:\n-Require explicit user confirmation for all high-impact actions (e.g., \"Send Email?\").\n-Design plugins to accept typed parameters only, not free text.\n\n---",
+    "metadata": {
+      "type": "knowledge_base",
+      "source": "OWASP"
+    }
+  },
+  "owasp_kb_v1_0_7_3f03124b": {
+    "doc_id": "owasp_kb_v1_0",
+    "text": "---\n\n- LLM08: Excessive Agency\nRisk Signature (When to Flag):\n  System Type: `Autonomous Agent` or `Agentic Workflow`.\n  Capabilities: System can `Plan`, `Reason`, or `Execute` multi-step actions autonomously.\n  Control Gap: Lack of \"Human oversight\" or open-ended loops.\n\nContext:\nThe agent performs unexpected or harmful actions due to lack of constraints.\n\nRecommendations:\n-Limit the agent's toolset to the minimum necessary functions.\n-Implement timeouts and loop limits to prevent infinite execution.\n\n---\n\n- LLM09: Overreliance\nRisk Signature (When to Flag):\n  Criticality: System is `Business-Critical` or `Safety-Critical`.\n  Usage: Output is used for decision-making without `Manual Review`.\n  Control Gap: No `Explainability` or citation mechanisms.",
+    "metadata": {
+      "type": "knowledge_base",
+      "source": "OWASP"
+    }
+  },
+  "owasp_kb_v1_0_8_a5425292": {
+    "doc_id": "owasp_kb_v1_0",
+    "text": "Context:\nUsers trust the model's hallucinations, leading to safety failures or incorrect decisions.\n\nRecommendations:\n-Provide citations (RAG source chunks) for all factual claims.\n-Display prominent disclaimers about AI fallibility.\n\n---\n\n- LLM10: Model Theft\nRisk Signature (When to Flag):\n  Deployment: Proprietary model deployed `On-premise`, on `Edge Devices`, or via `Public API`.\n  Value: Model represents significant IP (e.g., specialized fine-tuned model).\n  Control Gap: Weak authentication or lack of watermarking.\n\nContext:\nCompetitors extract the model weights or distill its knowledge via query access.\n\nRecommendations:\n-Centralize model inference behind a secure, authenticated API gateway.\n-Monitor query logs for extraction patterns (e.g., systematic high-entropy queries).",
+    "metadata": {
+      "type": "knowledge_base",
+      "source": "OWASP"
+    }
   }
 }

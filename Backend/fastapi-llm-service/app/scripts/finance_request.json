@@ -1,0 +1,83 @@
+{
+    "product": {
+        "name": "FinGuard Robo-Advisor",
+        "description": "An automated investment platform that manages user portfolios using AI algorithms to optimize asset allocation based on risk tolerance and market trends.",
+        "category": "fintech-application",
+        "technology": "Python, TensorFlow, AWS Lambda, PostgreSQL",
+        "version": "1.5.2"
+    },
+    "questionnaire": {
+        "applicationContext": {
+            "systemType": "automated-decision-making",
+            "domain": "finance",
+            "criticality": "high-impact"
+        },
+        "dataHandling": {
+            "sources": [
+                "market-data-feeds",
+                "user-bank-accounts"
+            ],
+            "containsSensitive": [
+                "pii",
+                "financial-records",
+                "ssn"
+            ],
+            "sanitizeBeforeModelUse": true
+        },
+        "modelDetails": {
+            "modelType": "predictive-model",
+            "maintenance": "periodic-retraining",
+            "visibility": "grey-box"
+        },
+        "systemArchitecture": {
+            "deployment": "cloud-native",
+            "access": [
+                "public-mobile-app",
+                "web-dashboard"
+            ],
+            "integrations": [
+                "payment-gateway",
+                "kyc-provider"
+            ]
+        },
+        "interactionControl": {
+            "inputs": [
+                "financial-goals",
+                "risk-tolerance-survey"
+            ],
+            "outputs": [
+                "investment-strategy",
+                "portfolio-rebalancing"
+            ],
+            "promptGuardrails": false
+        },
+        "securityPractices": {
+            "auth": [
+                "oauth2",
+                "biometric"
+            ],
+            "logging": "standard",
+            "encryption": true
+        },
+        "threatSurface": {
+            "multiTenant": true,
+            "externalQuery": true,
+            "adversarialProtection": false
+        },
+        "complianceGovernance": {
+            "frameworks": [
+                "sox",
+                "pci-dss",
+                "gdpr"
+            ],
+            "explainability": true,
+            "retentionPolicies": true
+        }
+    },
+    "analysis": {},
+    "context": {},
+    "metadata": {
+        "model": "gpt-4",
+        "test": true
+    }
+}

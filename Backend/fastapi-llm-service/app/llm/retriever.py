@@ -4,7 +4,7 @@ Ensures at least one web result is included when available and keeps top 2.
 """
 from typing import List, Dict
 from app.llm.ingest import query_index
-from app.llm.web_search import tavily_search
+from app.llm.web_search import duckduckgo_search
 from app.utils.logger import logger
 
 
@@ -41,7 +41,7 @@ def retrieve(query: str, kb_k: int = 2, web_k: int = 2) -> List[Dict]:
         logger.warning(f"KB retrieval failed: {e}")
 
     try:
-        web = tavily_search(query, top_k=web_k)
+        web = duckduckgo_search(query, top_k=web_k)
         for item in web:
             web_contexts.append({
                 "source": "web",
